@@ -1,10 +1,8 @@
-package com.airhacks.enhydrator.flexpipe;
-
 /*
  * #%L
  * enhydrator
  * %%
- * Copyright (C) 2014 Adam Bien
+ * Copyright (C) 2014 - 2015 Adam Bien
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,18 +17,6 @@ package com.airhacks.enhydrator.flexpipe;
  * limitations under the License.
  * #L%
  */
+$MEMORY.put('date', date);
+$ROW;
 
-import com.airhacks.enhydrator.transform.RowTransformer;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
-
-/**
- *
- * @author airhacks.com
- */
-@XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(name = "row-transformation")
-public abstract class RowTransformation implements RowTransformer {
-
-}

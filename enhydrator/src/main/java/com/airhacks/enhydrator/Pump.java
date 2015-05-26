@@ -64,6 +64,7 @@ public class Pump {
     private final Consumer<String> flowListener;
     private final Memory pumpMemory;
     private final boolean stopOnError;
+    private final Map<String, Object> scriptEngineBindings;
 
     private Pump(Source source, Function<ResultSet, Row> rowTransformer,
             List<Function<Row, Row>> before,
@@ -77,12 +78,13 @@ public class Pump {
             Consumer<String> flowListener,
             boolean stopOnError,
             Memory pumpMemory,
+            Map<String, Object> scriptEngineBindings,
             Object... params) {
 
         this.flowListener = flowListener;
         this.filterExpressions = filterExpressions;
-        this.expression = new Expression(flowListener);
-        this.filterExpression = new FilterExpression(flowListener);
+        this.expression = new Expression(flowListener, scriptEngineBindings);
+        this.filterExpression = new FilterExpression(flowListener, scriptEngineBindings);
         this.source = source;
         this.beforeTransformations = before;
         this.namedEntryFunctions = namedFunctions;
@@ -94,6 +96,7 @@ public class Pump {
         this.params = params;
         this.stopOnError = stopOnError;
         this.pumpMemory = pumpMemory;
+        this.scriptEngineBindings = scriptEngineBindings;
     }
 
     public Memory start() {
@@ -124,7 +127,7 @@ public class Pump {
     }
 
     void onNewRow(Row row) {
-        row.useGlobalMemory(pumpMemory);
+        row.useMemory(pumpMemory);
         this.flowListener.accept("Processing: " + row.getNumberOfColumns() + " columns !");
         Optional<Boolean> first = this.filterExpressions.stream().
                 map(e -> this.filterExpression.execute(row, e)).
@@ -254,14 +257,20 @@ public class Pump {
             this.before = new ArrayList<>();
             this.after = new ArrayList<>();
             this.indexedFunctions = new HashMap<>();
-            this.flowListener = f -> { };
+            this.flowListener = f -> {
+            };
             this.deadLetterQueue = new LogSink();
             this.stopOnError = true;
             this.engineMemory = new Memory();
         }
 
+        public Engine homeScriptFolder(String baseFolder, Map<String, Object> bindings) {
+            this.loader = FunctionScriptLoader.create(baseFolder, bindings);
+            return this;
+        }
+
         public Engine homeScriptFolder(String baseFolder) {
-            this.loader = FunctionScriptLoader.create(baseFolder);
+            this.loader = FunctionScriptLoader.create(baseFolder, null);
             return this;
         }
 
@@ -348,6 +357,14 @@ public class Pump {
             return this;
         }
 
+        public Map<String, Object> getScriptEngineBindings() {
+            if (this.loader == null) {
+                return null;
+            } else {
+                return this.loader.getScriptEngineBindings();
+            }
+        }
+
         public Pump build() {
             return new Pump(source, this.resultSetToEntries,
                     this.before, this.entryFunctions,
@@ -359,6 +376,7 @@ public class Pump {
                     this.flowListener,
                     this.stopOnError,
                     this.engineMemory,
+                    getScriptEngineBindings(),
                     this.params);
         }
 
