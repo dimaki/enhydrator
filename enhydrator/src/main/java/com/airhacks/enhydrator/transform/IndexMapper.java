@@ -25,9 +25,12 @@ import com.airhacks.enhydrator.in.Column;
 import com.airhacks.enhydrator.in.Row;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 /**
  * The IndexMapper maps the order of the columns based on the column headers in
@@ -40,6 +43,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class IndexMapper extends RowTransformation {
 
     // A array list of column names that defines the indices of the columns.
+    @XmlJavaTypeAdapter(IndexMapperTypeAdapter.class)
+    @XmlElement(name = "set-index-by-name")
     List<String> orderedNames;
 
     public IndexMapper() {
@@ -68,4 +73,27 @@ public class IndexMapper extends RowTransformation {
         }
         column.setIndex(index);
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 37 * hash + Objects.hashCode(this.orderedNames);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final IndexMapper other = (IndexMapper) obj;
+        if (!Objects.equals(this.orderedNames, other.orderedNames)) {
+            return false;
+        }
+        return true;
+    }
+
 }
