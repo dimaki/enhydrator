@@ -21,6 +21,7 @@ package com.airhacks.enhydrator;
  */
 import com.airhacks.enhydrator.flexpipe.ColumnTransformation;
 import com.airhacks.enhydrator.flexpipe.Pipeline;
+import com.airhacks.enhydrator.flexpipe.RowTransformation;
 import com.airhacks.enhydrator.in.ResultSetToEntries;
 import com.airhacks.enhydrator.in.Row;
 import com.airhacks.enhydrator.in.Source;
@@ -31,6 +32,7 @@ import com.airhacks.enhydrator.transform.Expression;
 import com.airhacks.enhydrator.transform.FilterExpression;
 import com.airhacks.enhydrator.transform.FunctionScriptLoader;
 import com.airhacks.enhydrator.transform.Memory;
+import com.airhacks.enhydrator.transform.NashornRowTransformer;
 import com.airhacks.enhydrator.transform.RowTransformer;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -40,6 +42,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.json.JsonValue;
 
 /**
@@ -385,6 +389,11 @@ public class Pump {
             this.source = pipeline.getSource();
             this.sinks = pipeline.getSinks();
             this.resultSetToEntries = new ResultSetToEntries();
+
+            pipeline.getPreRowTransformers().stream().
+                    filter(rt -> rt instanceof RowTransformer).
+                    map(RowTransformer.class::cast).
+                    forEach(rt -> rt.init(this.loader.getScriptEngineBindings()));
             pipeline.getPreRowTransformers().forEach(t -> startWith(t::execute));
             List<ColumnTransformation> trafos = pipeline.getColumnTransformations();
             trafos.forEach(t -> {
@@ -393,6 +402,10 @@ public class Pump {
                     with(name, t.getFunction());
                 }
             });
+            pipeline.getPostRowTransfomers().stream().
+                    filter(rt -> rt instanceof RowTransformer).
+                    map(RowTransformer.class::cast).
+                    forEach(rt -> rt.init(this.loader.getScriptEngineBindings()));
             pipeline.getPostRowTransfomers().forEach(t -> endWith(t::execute));
             this.expressions = pipeline.getExpressions();
             this.filterExpressions = pipeline.getFilters();
