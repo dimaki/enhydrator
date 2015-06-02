@@ -20,9 +20,9 @@ package com.airhacks.enhydrator.in;
  * #L%
  */
 import static org.hamcrest.CoreMatchers.is;
-import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -135,4 +135,13 @@ public class ColumnTest {
         nullColumn.setValue(null);
         assertNull(nullColumn.getValue());
     }
+
+    @Test
+    public void cloneTest() {
+        Column column = new Column(0, "heroes", "duke");
+        Column cloned = column.clone();
+        assertNotSame(column, cloned);
+        assertEquals(column, cloned);
+    }
+
 }
