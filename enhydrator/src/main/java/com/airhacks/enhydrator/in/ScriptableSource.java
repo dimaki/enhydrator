@@ -35,7 +35,6 @@ import java.util.logging.Logger;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -76,7 +75,6 @@ public class ScriptableSource implements Source {
         this.inputFile = inputFile;
         this.scriptFile = scriptFile;
         this.charsetName = charset;
-        this.preInitialize();
         this.init();
     }
 
@@ -87,18 +85,22 @@ public class ScriptableSource implements Source {
         init();
     }
 
-    void preInitialize() {
-        this.input = Paths.get(this.inputFile);
-        try {
-            this.script = new FileReader(this.scriptFile);
-        } catch (FileNotFoundException ex) {
-            throw new IllegalStateException("Cannot read script file " + this.scriptFile, ex);
+    void init() {
+        if (this.inputFile != null) {
+            this.input = Paths.get(this.inputFile);
         }
-    }
+        if (this.scriptFile != null) {
+            try {
+                this.script = new FileReader(this.scriptFile);
+            } catch (FileNotFoundException ex) {
+                throw new IllegalStateException("Cannot read script file " + this.scriptFile, ex);
+            }
+        }
 
-    void afterUnmarshal(Unmarshaller umarshaller, Object parent) {
-        this.preInitialize();
-        this.init();
+        this.rows = new ArrayList<>();
+        this.charset = Charset.forName(charsetName);
+        ScriptEngineManager manager = new ScriptEngineManager();
+        this.nashorn = manager.getEngineByName("javascript");
     }
 
     static FileReader getScriptContents(String location) {
@@ -107,13 +109,6 @@ public class ScriptableSource implements Source {
         } catch (FileNotFoundException ex) {
             throw new IllegalStateException("Cannot find file: " + location, ex);
         }
-    }
-
-    public void init() throws IllegalStateException, IllegalArgumentException {
-        this.rows = new ArrayList<>();
-        this.charset = Charset.forName(charsetName);
-        ScriptEngineManager manager = new ScriptEngineManager();
-        this.nashorn = manager.getEngineByName("javascript");
     }
 
     String pullContent() throws IOException {
