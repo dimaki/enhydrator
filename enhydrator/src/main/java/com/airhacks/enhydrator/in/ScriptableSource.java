@@ -9,9 +9,9 @@ package com.airhacks.enhydrator.in;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,7 +35,6 @@ import java.util.logging.Logger;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -76,7 +75,6 @@ public class ScriptableSource implements Source {
         this.inputFile = inputFile;
         this.scriptFile = scriptFile;
         this.charsetName = charset;
-        this.preInitialize();
         this.init();
     }
 
@@ -87,18 +85,22 @@ public class ScriptableSource implements Source {
         init();
     }
 
-    void preInitialize() {
-        this.input = Paths.get(this.inputFile);
-        try {
-            this.script = new FileReader(this.scriptFile);
-        } catch (FileNotFoundException ex) {
-            throw new IllegalStateException("Cannot read script file " + this.scriptFile, ex);
+    public void init() {
+        if (this.inputFile != null) {
+            this.input = Paths.get(this.inputFile);
         }
-    }
+        if (this.scriptFile != null) {
+            try {
+                this.script = new FileReader(this.scriptFile);
+            } catch (FileNotFoundException ex) {
+                throw new IllegalStateException("Cannot read script file " + this.scriptFile, ex);
+            }
+        }
 
-    void afterUnmarshal(Unmarshaller umarshaller, Object parent) {
-        this.preInitialize();
-        this.init();
+        this.rows = new ArrayList<>();
+        this.charset = Charset.forName(charsetName);
+        ScriptEngineManager manager = new ScriptEngineManager();
+        this.nashorn = manager.getEngineByName("javascript");
     }
 
     static FileReader getScriptContents(String location) {
@@ -107,13 +109,6 @@ public class ScriptableSource implements Source {
         } catch (FileNotFoundException ex) {
             throw new IllegalStateException("Cannot find file: " + location, ex);
         }
-    }
-
-    public void init() throws IllegalStateException, IllegalArgumentException {
-        this.rows = new ArrayList<>();
-        this.charset = Charset.forName(charsetName);
-        ScriptEngineManager manager = new ScriptEngineManager();
-        this.nashorn = manager.getEngineByName("javascript");
     }
 
     String pullContent() throws IOException {
