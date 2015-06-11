@@ -21,8 +21,6 @@ package com.airhacks.enhydrator.transform;
  */
 
 import com.airhacks.enhydrator.in.Column;
-import com.airhacks.enhydrator.in.JDBCSource;
-import static com.airhacks.enhydrator.in.JDBCSourceIT.getSource;
 import com.airhacks.enhydrator.in.Row;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,7 +30,6 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import static org.hamcrest.CoreMatchers.is;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
