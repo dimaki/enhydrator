@@ -36,7 +36,13 @@ public class ScriptingEnvironmentProvider {
         final Row emptyRow = new Row();
         bindings.put("$EMPTY", emptyRow);
         bindings.put("$MEMORY", input.getMemory());
-        input.getColumns().forEach(c -> bindings.put(c.getName(), c));
+
+        // Put all columns by their column name into bindings. Filter columns that have no name.
+        input.getColumns()
+                .stream()
+                .filter(c -> c.getName() != null && !c.getName().isEmpty())
+                .forEach(c -> bindings.put(c.getName(), c));
+
         if (scriptEngineBindings != null) {
             bindings.putAll(scriptEngineBindings);
         }
