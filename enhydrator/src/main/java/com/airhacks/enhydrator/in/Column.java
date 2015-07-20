@@ -13,9 +13,9 @@ import java.util.StringTokenizer;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,6 +52,9 @@ public class Column implements Cloneable {
         this(index, name, null);
     }
 
+    /**
+     * Convert the value of this column to integer
+     */
     public void convertToInteger() {
         if (value.isPresent()) {
             String asString = String.valueOf(value.get());
@@ -64,6 +67,9 @@ public class Column implements Cloneable {
         }
     }
 
+    /**
+     * Convert the value of this column to double
+     */
     public void convertToDouble() {
         if (value.isPresent()) {
             String asString = String.valueOf(value.get());
@@ -103,6 +109,9 @@ public class Column implements Cloneable {
         }
     }
 
+    /**
+     * Convert the value of the column to boolean
+     */
     public void convertToBoolean() {
         if (value.isPresent()) {
 
@@ -115,20 +124,35 @@ public class Column implements Cloneable {
         this.value = Optional.of(value);
     }
 
+    /**
+     * Convert the value of this column to string
+     */
     public void convertToString() {
         if (value.isPresent()) {
             this.value = Optional.of(String.valueOf(value));
         }
     }
 
+    /**
+     * Check if this column contains a value
+     * @return true if this column contains no value (NULL value), false otherwise
+     */
     public boolean isNullValue() {
         return !this.value.isPresent();
     }
 
+    /**
+     * Get the name of the column
+     * @return The name of the column
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Get the value of the column
+     * @return The value of the column, or NULL if no value is present
+     */
     public Object getValue() {
         if (value.isPresent()) {
             return value.get();
@@ -140,6 +164,10 @@ public class Column implements Cloneable {
         return value;
     }
 
+    /**
+     * Get the index (position) of this column
+     * @return The index of this column
+     */
     public int getIndex() {
         return index;
     }

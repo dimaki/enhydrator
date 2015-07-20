@@ -9,9 +9,9 @@ package com.airhacks.enhydrator.in;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,6 +58,11 @@ public class Row {
         this.memory = globalMemory;
     }
 
+    /**
+     * Get the value of the column with the given name.
+     * @param columnName The column name (or the column index, e.g. "15")
+     * @return The value of the column
+     */
     public Object getColumnValue(String columnName) {
         final Column column = this.columnByName.get(columnName);
         if (column == null || column.isNullValue()) {
@@ -66,8 +71,13 @@ public class Row {
         return column.getValue();
     }
 
-    public Column getColumnByName(String column) {
-        return this.columnByName.get(column);
+    /**
+     * Get the column with the given name.
+     * @param columnName The column name (or the column index, e.g. "15")
+     * @return The column
+     */
+    public Column getColumnByName(String columnName) {
+        return this.columnByName.get(columnName);
     }
 
     public void findColumnsAndApply(Predicate<Column> predicate, Consumer<Column> modifier) {
@@ -81,6 +91,11 @@ public class Row {
 
     }
 
+    /**
+     * Get the column with the given column index (position)
+     * @param index The column index (position). The first column has index 0.
+     * @return The column
+     */
     public Column getColumnByIndex(int index) {
         return this.columnByIndex.get(index);
     }
@@ -89,12 +104,21 @@ public class Row {
         return this.columnByName.values();
     }
 
+    /**
+     * Get all columns sorted ascending by their column index (position)
+     * @return a list of all columns
+     */
     public List<Column> getColumnsSortedByColumnIndex() {
         return this.columnByName.values().stream().
                 sorted((col1, col2) -> Integer.compare(col1.getIndex(), col2.getIndex())).
                 collect(Collectors.toList());
     }
 
+    /**
+     * Change the name of the column with the given name to the specified new name
+     * @param oldName The name of the column to be changed
+     * @param newName The new name of the column
+     */
     public void changeColumnName(String oldName, String newName) {
         Column column = this.columnByName.remove(oldName);
         if (column == null) {
@@ -105,12 +129,11 @@ public class Row {
     }
 
     /**
-     * Adds or overrides a column with a default destination
-     *
-     * @param index the origin index
-     * @param name a unique name of the column.
-     * @param value
-     * @return reference for method chaining
+     * Add or override a column
+     * @param index The index (position) of the column to be added (can be -1 to append to end)
+     * @param name A unique name of the column.
+     * @param value The value of the column
+     * @return the row (containing all columns)
      */
     public Row addColumn(int index, String name, Object value) {
         Objects.requireNonNull(name, "Name of the column cannot be null");
@@ -119,6 +142,11 @@ public class Row {
         return this.addColumn(column);
     }
 
+    /**
+     * Add or override a column
+     * @param column The column to be added
+     * @return the row (containing all columns)
+     */
     public Row addColumn(Column column) {
         Objects.requireNonNull(column, "Column cannot be null");
         this.columnByName.put(column.getName(), column);
@@ -126,6 +154,12 @@ public class Row {
         return this;
     }
 
+    /**
+     * Add or override a column with a NULL value
+     * @param index The index (position) of the column to be added (can be -1 to append to end)
+     * @param name The name of the column to be added
+     * @return the row (containing all columns)
+     */
     public Row addNullColumn(int index, String name) {
         final Column column = new Column(index, name);
         this.columnByName.put(name, column);
@@ -133,8 +167,13 @@ public class Row {
         return this;
     }
 
-    public void transformColumn(String name, Function<Object, Object> transformer) {
-        Column input = getColumnByName(name);
+    /**
+     * Transform a column by applying the given function to it
+     * @param columnName The name of the column to be transformed
+     * @param transformer The function to apply to the column
+     */
+    public void transformColumn(String columnName, Function<Object, Object> transformer) {
+        Column input = getColumnByName(columnName);
         if (input == null || input.isNullValue()) {
             return;
         }
@@ -142,10 +181,18 @@ public class Row {
         input.setValue(output);
     }
 
+    /**
+     * Get number of columns contained in this row
+     * @return The number of columns of this row
+     */
     public int getNumberOfColumns() {
         return this.columnByName.size();
     }
 
+    /**
+     * Get a name-value map of all column names and their column values contained in this row
+     * @return A name-value map of all column names and their column values of this row
+     */
     public Map<String, Optional<Object>> getColumnValues() {
         return this.columnByName.entrySet().stream().
                 collect(Collectors.toMap(k -> k.getKey(), v -> value(v)));
@@ -161,16 +208,28 @@ public class Row {
         return valueAsOptional;
     }
 
+    /**
+     * Get all column names contained in this row
+     * @return All column names of this row
+     */
     public Set<String> getColumnNames() {
         return this.columnByName.keySet();
     }
 
+    /** Get a name-value map of all column names and their column values contained in this row. All values are converted to strings.
+     * @return A name-value map of all column names and their column values of this row
+     */
     public Map<String, String> getColumnsAsString() {
         Map<String, String> retVal = new HashMap<>();
         this.columnByName.keySet().forEach(e -> retVal.put(e, String.valueOf(this.columnByName.get(e))));
         return retVal;
     }
 
+    /**
+     * Remove the column with the given name form this row
+     * @param name The name of the column to be removed
+     * @return the row (containing all columns)
+     */
     public Row removeColumn(String name) {
         this.columnByName.remove(name);
         return this;
@@ -193,6 +252,10 @@ public class Row {
         return this;
     }
 
+    /**
+     * Check if row is empty (contains no columns)
+     * @return true if row is empty, false otherwise
+     */
     public boolean isEmpty() {
         return this.columnByName.isEmpty();
     }
@@ -227,27 +290,50 @@ public class Row {
         return !this.columnByName.containsKey(name);
     }
 
-    public Row add(Row input) {
-        this.children.add(input);
+    /**
+     * Add the given row to this row as a child
+     * @param child The row to be added as child
+     * @return the row (containing the added child)
+     */
+    public Row add(Row child) {
+        this.children.add(child);
         return this;
     }
 
+    /**
+     * Get all children (rows) of this row
+     * @return a list of all child rows
+     */
     public List<Row> getChildren() {
         return this.children;
     }
 
+    /**
+     * Check if this row has children
+     * @return true if there are child rows, false otherwise
+     */
     public boolean hasChildren() {
         return !this.children.isEmpty();
     }
 
+    /**
+     * Get the reference to the memory (containing helper functions and processing information)
+     * @return The memory
+     */
     public Memory getMemory() {
         return memory;
     }
 
+    /**
+     * Flag this row to be successfully processed
+     */
     public void successfullyProcessed() {
         this.memory.processed();
     }
 
+    /**
+     * Flag this row as erronious
+     */
     public void errorOccured() {
         this.memory.errorOccured();
     }
