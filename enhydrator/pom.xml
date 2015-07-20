@@ -118,6 +118,29 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.3</version>
+                <configuration>
+                    <source>1.8</source>
+                    <show>public</show>
+                    <doctitle>Public Import/Export API</doctitle>
+                    <title>Public Import/Export API</title>
+                    <bottom><![CDATA[(c) 2015 Diehl Metering]]></bottom>
+                    <level>public</level>
+                    <show>public</show>
+                    <author>false</author>
+                    <nonavbar>true</nonavbar>
+                    <overview/>
+                    <sourceFileIncludes>
+                        <include>Row.java</include>
+                        <include>Column.java</include>
+                        <include>Memory.java</include>
+                    </sourceFileIncludes>
+                    <sourcepath>${basedir}/src/main/java/com/airhacks/enhydrator/in;${basedir}/src/main/java/com/airhacks/enhydrator/transform</sourcepath>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.4.2</version>
                 <configuration>
