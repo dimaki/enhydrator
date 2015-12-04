@@ -9,9 +9,9 @@ package com.airhacks.enhydrator.out;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,6 +27,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collection;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -81,6 +83,7 @@ public class CSVFileSink extends Sink {
 
         Charset charset = Charset.forName(charsetName);
         try {
+            this.namesAlreadyWritten = Files.exists(Paths.get(fileName));
             this.bos = new PrintWriter(new OutputStreamWriter(new FileOutputStream(fileName, append), charset));
         } catch (IOException ex) {
             throw new IllegalStateException("File " + this.fileName + " not found", ex);
