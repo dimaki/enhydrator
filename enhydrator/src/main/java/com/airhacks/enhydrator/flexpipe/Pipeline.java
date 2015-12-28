@@ -21,9 +21,11 @@ package com.airhacks.enhydrator.flexpipe;
  */
 import com.airhacks.enhydrator.in.Source;
 import com.airhacks.enhydrator.out.Sink;
+import com.airhacks.enhydrator.out.NamedSink;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -68,7 +70,7 @@ public class Pipeline {
     private List<RowTransformation> postRowTransfomers;
 
     @XmlElement(name = "sink")
-    private List<Sink> sinks;
+    private List<NamedSink> sinks;
 
     Pipeline() {
         this.preRowTransformers = new ArrayList<>();
@@ -118,7 +120,7 @@ public class Pipeline {
         this.queryParams.add(value);
     }
 
-    public void addSink(Sink sink) {
+    public void addSink(NamedSink sink) {
         this.sinks.add(sink);
     }
 
@@ -139,7 +141,7 @@ public class Pipeline {
     }
 
     public List<Sink> getSinks() {
-        return sinks;
+        return sinks.stream().map(s -> (Sink) s).collect(Collectors.toList());
     }
 
     public List<RowTransformation> getPreRowTransformers() {

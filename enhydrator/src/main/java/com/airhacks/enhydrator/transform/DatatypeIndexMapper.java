@@ -34,12 +34,12 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @author airhacks.com
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(name = "datatype-mapper")
-public class DatatypeMapper extends RowTransformation {
+@XmlRootElement(name = "datatype-index-mapper")
+public class DatatypeIndexMapper extends RowTransformation {
 
     private Map<Integer, Datatype> mappings;
 
-    public DatatypeMapper() {
+    public DatatypeIndexMapper() {
         this.mappings = new HashMap<>();
     }
 
@@ -69,7 +69,7 @@ public class DatatypeMapper extends RowTransformation {
         }
     }
 
-    public DatatypeMapper addMapping(int index, Datatype mapping) {
+    public DatatypeIndexMapper addMapping(int index, Datatype mapping) {
         this.mappings.put(index, mapping);
         return this;
     }
@@ -89,7 +89,7 @@ public class DatatypeMapper extends RowTransformation {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final DatatypeMapper other = (DatatypeMapper) obj;
+        final DatatypeIndexMapper other = (DatatypeIndexMapper) obj;
         if (!Objects.equals(this.mappings, other.mappings)) {
             return false;
         }

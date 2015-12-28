@@ -25,6 +25,7 @@ import com.airhacks.enhydrator.in.ResultSetToEntries;
 import com.airhacks.enhydrator.in.Row;
 import com.airhacks.enhydrator.in.Source;
 import com.airhacks.enhydrator.out.LogSink;
+import com.airhacks.enhydrator.out.NamedSink;
 import com.airhacks.enhydrator.out.Sink;
 import com.airhacks.enhydrator.transform.ColumnTransformer;
 import com.airhacks.enhydrator.transform.Expression;
@@ -49,7 +50,7 @@ import javax.json.JsonValue;
 public class Pump {
 
     private final Source source;
-    private final Map<String, Function<Object, Object>> namedEntryFunctions;
+    private final Map<String, Function<Object, Object>> columnTransformations;
     private final List<Function<Row, Row>> beforeTransformations;
     private final List<Function<Row, Row>> afterTransformations;
     private final List<String> expressions;
@@ -66,7 +67,7 @@ public class Pump {
     private final boolean stopOnError;
     private final Map<String, Object> scriptEngineBindings;
 
-    private Pump(Source source, Function<ResultSet, Row> rowTransformer,
+    private Pump(Source source,
             List<Function<Row, Row>> before,
             Map<String, Function<Object, Object>> namedFunctions,
             List<String> filterExpressions,
@@ -87,7 +88,7 @@ public class Pump {
         this.filterExpression = new FilterExpression(flowListener, scriptEngineBindings);
         this.source = source;
         this.beforeTransformations = before;
-        this.namedEntryFunctions = namedFunctions;
+        this.columnTransformations = namedFunctions;
         this.expressions = expressions;
         this.afterTransformations = after;
         this.sinks = sinks;
@@ -131,7 +132,8 @@ public class Pump {
         this.flowListener.accept("Processing: " + row.getNumberOfColumns() + " columns !");
         Optional<Boolean> first = this.filterExpressions.stream().
                 map(e -> this.filterExpression.execute(row, e)).
-                filter(r -> r == false).findFirst();
+                filter(r -> r == false).
+                findFirst();
         if (!first.isPresent()) {
             transformRow(row);
         } else {
@@ -140,17 +142,18 @@ public class Pump {
         row.successfullyProcessed();
     }
 
-    void transformRow(Row convertedRow) {
-        Row entryColumns = applyRowTransformations(this.beforeTransformations, convertedRow);
-        applyNamedFunctions(entryColumns);
-        this.flowListener.accept("Named functions processed");
-        applyExpressions(convertedRow);
-        this.flowListener.accept("Expressions processed");
+    void transformRow(Row currentRow) {
+        Row entryColumns = applyRowTransformations(this.beforeTransformations, currentRow);
+        this.flowListener.accept("Pre Row transformations processed");
+        applyExpressions(currentRow);
+        this.flowListener.accept("Row expressions processed");
+        columnTransformations(entryColumns);
+        this.flowListener.accept("Column transformations processed");
         Row afterProcessed = applyRowTransformations(this.afterTransformations, entryColumns);
         if (afterProcessed == null) {
             return;
         }
-        this.flowListener.accept("After process RowTransformer executed. " + afterProcessed.getNumberOfColumns() + " entries");
+        this.flowListener.accept("Post Row transformations processed: " + afterProcessed.getNumberOfColumns() + " entries");
         this.sink(afterProcessed);
         this.flowListener.accept("Result processed by sinks");
     }
@@ -198,7 +201,7 @@ public class Pump {
     }
 
     Object applyOrReturnOnNamed(String name, JsonValue value) {
-        final Function<Object, Object> function = this.namedEntryFunctions.get(name);
+        final Function<Object, Object> function = this.columnTransformations.get(name);
         if (function != null) {
             this.flowListener.accept("Function: " + function + " found for name: " + name);
             return function.apply(value);
@@ -208,15 +211,17 @@ public class Pump {
         }
     }
 
-    void applyNamedFunctions(Row entryColumns) {
-        this.namedEntryFunctions.forEach((k, v) -> entryColumns.transformColumn(k, v));
+    void columnTransformations(Row entryColumns) {
+        this.columnTransformations.forEach((k, v) -> entryColumns.transformColumn(k, v));
     }
 
     static Row applyRowTransformations(List<Function<Row, Row>> trafos, Row convertedColumns) {
         if (trafos == null || trafos.isEmpty()) {
             return convertedColumns;
         }
-        final Function<Row, Row> composition = trafos.stream().reduce((i, j) -> i.andThen(j)).get();
+        final Function<Row, Row> composition = trafos.stream().
+                reduce((i, j) -> i.andThen(j)).
+                get();
         Row result = composition.apply(convertedColumns);
         if (result == null) {
             return null;
@@ -247,6 +252,7 @@ public class Pump {
         private Consumer<String> flowListener;
         private boolean stopOnError;
         private Memory engineMemory;
+        private Map<String, Object> bindings;
 
         public Engine() {
             this.sinks = new ArrayList<>();
@@ -262,9 +268,11 @@ public class Pump {
             this.deadLetterQueue = new LogSink();
             this.stopOnError = true;
             this.engineMemory = new Memory();
+            this.bindings = new HashMap<>();
         }
 
         public Engine homeScriptFolder(String baseFolder, Map<String, Object> bindings) {
+            this.bindings = bindings;
             this.loader = FunctionScriptLoader.create(baseFolder, bindings);
             return this;
         }
@@ -279,7 +287,7 @@ public class Pump {
             return this;
         }
 
-        public Engine to(Sink sink) {
+        public Engine to(NamedSink sink) {
             if (this.sinks == null) {
                 this.sinks = new ArrayList<>();
             }
@@ -287,18 +295,21 @@ public class Pump {
             return this;
         }
 
-        public Engine dlq(Sink sink) {
+        public Engine dlq(NamedSink sink) {
             this.deadLetterQueue = sink;
             return this;
         }
 
         public Engine startWith(RowTransformer transformer) {
+            transformer.init(this.bindings);
             this.before.add(transformer::execute);
             return this;
         }
 
         public Engine startWith(String scriptName) {
-            return startWith(this.loader.getRowTransformer(scriptName));
+            final RowTransformer rowTransformer = this.loader.getRowTransformer(scriptName);
+            rowTransformer.init(this.bindings);
+            return startWith(rowTransformer);
         }
 
         public Engine startWithExpression(String scriptName) {
@@ -316,23 +327,33 @@ public class Pump {
             return this;
         }
 
-        public Engine with(String columnName, String scriptName) {
+        public Engine withColumnScript(String columnName, String scriptName) {
             Function<Object, Object> function = load(scriptName);
             return with(columnName, function);
         }
 
-        Function<Object, Object> load(String scriptName) {
-            ColumnTransformer entryTransformer = this.loader.getColumnTransformer(scriptName);
-            return entryTransformer::execute;
+        public Engine withColumnExpression(String columnName, String scriptContent) {
+            ColumnTransformer columnTransformer = this.loader.createFromScript(scriptContent);
+            columnTransformer.init(this.bindings);
+            return with(columnName, columnTransformer::execute);
         }
 
-        public Engine endWith(Function<Row, Row> after) {
-            this.after.add(after);
+        Function<Object, Object> load(String scriptName) {
+            ColumnTransformer columnTransformer = this.loader.getColumnTransformer(scriptName);
+            columnTransformer.init(this.bindings);
+            return columnTransformer::execute;
+        }
+
+        public Engine endWith(RowTransformer transformer) {
+            transformer.init(this.bindings);
+            this.after.add(transformer::execute);
             return this;
+
         }
 
         public Engine endWith(String scriptName) {
             RowTransformer rowTransformer = this.loader.getRowTransformer(scriptName);
+            rowTransformer.init(this.bindings);
             return endWith(rowTransformer::execute);
         }
 
@@ -366,7 +387,7 @@ public class Pump {
         }
 
         public Pump build() {
-            return new Pump(source, this.resultSetToEntries,
+            return new Pump(source,
                     this.before, this.entryFunctions,
                     this.filterExpressions,
                     this.expressions,
@@ -395,7 +416,11 @@ public class Pump {
             trafos.forEach(t -> {
                 String name = t.getColumnName();
                 if (name != null) {
-                    with(name, t.getFunction());
+                    if (t.isScript()) {
+                        withColumnScript(name, t.getScriptNameOrContent());
+                    } else {
+                        withColumnExpression(name, t.getScriptNameOrContent());
+                    }
                 }
             });
             pipeline.getPostRowTransfomers().stream().

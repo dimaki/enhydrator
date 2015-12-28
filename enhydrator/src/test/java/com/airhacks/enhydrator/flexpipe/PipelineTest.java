@@ -27,10 +27,11 @@ import com.airhacks.enhydrator.in.Source;
 import com.airhacks.enhydrator.in.VirtualSinkSource;
 import com.airhacks.enhydrator.out.JDBCSinkTest;
 import com.airhacks.enhydrator.out.LogSink;
-import com.airhacks.enhydrator.out.Sink;
+import com.airhacks.enhydrator.out.ScriptableSink;
+import com.airhacks.enhydrator.out.NamedSink;
 import com.airhacks.enhydrator.transform.ColumnCopier;
 import com.airhacks.enhydrator.transform.Datatype;
-import com.airhacks.enhydrator.transform.DatatypeMapper;
+import com.airhacks.enhydrator.transform.DatatypeIndexMapper;
 import com.airhacks.enhydrator.transform.DestinationMapper;
 import com.airhacks.enhydrator.transform.NashornRowTransformer;
 import com.airhacks.enhydrator.transform.SkipFirstRow;
@@ -78,14 +79,24 @@ public class PipelineTest {
         assertEquals(deserialized, origin);
     }
 
+    @Test
+    public void jsonToNashornPipelineSerialization() {
+        Pipeline origin = getJSONToNashornPipeline();
+        Plumber plumber = Plumber.createWith(".", "config");
+        plumber.intoConfiguration(origin);
+        Pipeline deserialized = plumber.fromConfiguration(origin.getName());
+        assertNotSame(deserialized, origin);
+        assertEquals(deserialized, origin);
+    }
+
     public static Pipeline getJDBCPipeline() {
         DestinationMapper mapper = new DestinationMapper();
         mapper.addMapping(0, new TargetMapping("*", "*"));
         JDBCSource source = JDBCSourceIT.getSource();
-        Sink logSink = new LogSink();
-        Sink jdbcSink = JDBCSinkTest.getSink();
-        ColumnTransformation e1 = new ColumnTransformation("name", "convert");
-        ColumnTransformation e2 = new ColumnTransformation(42, "compress");
+        NamedSink logSink = new LogSink();
+        NamedSink jdbcSink = JDBCSinkTest.getSink();
+        ColumnTransformation e1 = new ColumnTransformation("name", "convert", true);
+        ColumnTransformation e2 = new ColumnTransformation(42, "compress", true);
         Pipeline origin = new Pipeline("jdbc", "src/test/scripts", "select * from Coffee where name like ? and strength = ?", source);
         origin.addSink(logSink);
         origin.addSink(jdbcSink);
@@ -108,13 +119,13 @@ public class PipelineTest {
     public static Pipeline getCSVPipeline() {
         DestinationMapper targetMapper = new DestinationMapper();
         targetMapper.addMapping(0, new TargetMapping("*", "*"));
-        DatatypeMapper datatypeMapper = new DatatypeMapper();
+        DatatypeIndexMapper datatypeMapper = new DatatypeIndexMapper();
         datatypeMapper.addMapping(0, Datatype.DOUBLE);
         Source source = new CSVFileSource("./src/test/files/pyramid.csv", ";", "UTF-8", true);
-        Sink logSink = new LogSink();
-        Sink jdbcSink = new VirtualSinkSource();
-        ColumnTransformation e1 = new ColumnTransformation("name", "convert");
-        ColumnTransformation e2 = new ColumnTransformation(42, "compress");
+        NamedSink logSink = new LogSink();
+        NamedSink jdbcSink = new VirtualSinkSource();
+        ColumnTransformation e1 = new ColumnTransformation("name", "convert", true);
+        ColumnTransformation e2 = new ColumnTransformation(42, "compress", true);
         Pipeline origin = new Pipeline("csv", "src/test/scripts", "select * from Coffee where name like ? and strength = ?", source);
         origin.addSink(logSink);
         origin.addSink(jdbcSink);
@@ -124,6 +135,7 @@ public class PipelineTest {
         origin.addEntryTransformation(e2);
         origin.addPreRowTransformation(targetMapper);
         origin.addPreRowTransformation(datatypeMapper);
+        origin.addEntryTransformation(new ColumnTransformation("1", "function execute(i){return 42;}", false));
         origin.addPreRowTransformation(new NashornRowTransformer("src/test/scripts", "encrypt"));
         origin.addPostRowTransformation(new NashornRowTransformer("src/test/scripts", "compress"));
         origin.addFilter("true");
@@ -134,11 +146,31 @@ public class PipelineTest {
     public static Pipeline getJSONPipeline() {
         DestinationMapper targetMapper = new DestinationMapper();
         targetMapper.addMapping(0, new TargetMapping("*", "*"));
-        DatatypeMapper datatypeMapper = new DatatypeMapper();
+        DatatypeIndexMapper datatypeMapper = new DatatypeIndexMapper();
         datatypeMapper.addMapping(1, Datatype.INTEGER);
         Source source = new ScriptableSource("./src/test/files/languages.json", "./src/test/files/converter.js", "UTF-8");
-        Sink logSink = new LogSink();
-        Sink virtualSink = new VirtualSinkSource();
+        NamedSink logSink = new LogSink();
+        NamedSink virtualSink = new VirtualSinkSource();
+        Pipeline origin = new Pipeline("json", "src/test/scripts", null, source);
+        origin.addSink(logSink);
+        origin.addSink(virtualSink);
+        origin.addPreRowTransformation(targetMapper);
+        origin.addPreRowTransformation(datatypeMapper);
+        origin.addPreRowTransformation(new NashornRowTransformer("src/test/scripts", "encrypt"));
+        origin.addPostRowTransformation(new NashornRowTransformer("src/test/scripts", "compress"));
+        origin.addFilter("true");
+        origin.addExpression("print($ROW); $ROW");
+        return origin;
+    }
+
+    public static Pipeline getJSONToNashornPipeline() {
+        DestinationMapper targetMapper = new DestinationMapper();
+        targetMapper.addMapping(0, new TargetMapping("*", "*"));
+        DatatypeIndexMapper datatypeMapper = new DatatypeIndexMapper();
+        datatypeMapper.addMapping(1, Datatype.INTEGER);
+        Source source = new ScriptableSource("./src/test/files/languages.json", "./src/test/files/converter.js", "UTF-8");
+        NamedSink logSink = new LogSink();
+        NamedSink virtualSink = new ScriptableSink("./src/test/scripts/sink.js");
         Pipeline origin = new Pipeline("json", "src/test/scripts", null, source);
         origin.addSink(logSink);
         origin.addSink(virtualSink);

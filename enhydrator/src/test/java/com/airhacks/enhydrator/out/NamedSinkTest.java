@@ -1,12 +1,10 @@
 package com.airhacks.enhydrator.out;
 
-import com.airhacks.enhydrator.in.Row;
-
 /*
  * #%L
  * enhydrator
  * %%
- * Copyright (C) 2014 - 2015 Adam Bien
+ * Copyright (C) 2014 Adam Bien
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,23 +19,30 @@ import com.airhacks.enhydrator.in.Row;
  * limitations under the License.
  * #L%
  */
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import org.junit.Test;
+
 /**
  *
  * @author airhacks.com
  */
-@FunctionalInterface
-public interface Sink extends AutoCloseable {
+public class NamedSinkTest {
 
-    default void init() {
+    @Test
+    public void defaultName() {
+        NamedSink sink = new CustomSink();
+        String name = sink.getName();
+        assertThat(name, is("customSink"));
     }
 
-    void processRow(Row entries);
+    @Test
+    public void shortName() {
+        NamedSink sink = new Z();
+        String name = sink.getName();
+        assertThat(name, is("z"));
 
-    @Override
-    default void close() {
     }
 
-    default String getName() {
-        return "*";
-    }
 }

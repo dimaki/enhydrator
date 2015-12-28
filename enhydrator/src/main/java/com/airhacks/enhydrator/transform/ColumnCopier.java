@@ -23,6 +23,7 @@ import com.airhacks.enhydrator.flexpipe.RowTransformation;
 import com.airhacks.enhydrator.in.Column;
 import com.airhacks.enhydrator.in.Row;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,14 @@ public class ColumnCopier extends RowTransformation {
 
     public ColumnCopier() {
         this.columnMappings = new HashMap<>();
+    }
+
+    public void addMapping(String columnName, List<String> targetNames) {
+        this.columnMappings.put(columnName, new NameList(targetNames));
+    }
+
+    public void addMapping(String columnName, String... targetNames) {
+        this.addMapping(columnName, Arrays.asList(targetNames));
     }
 
     @Override

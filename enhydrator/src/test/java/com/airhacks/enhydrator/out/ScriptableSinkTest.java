@@ -4,7 +4,7 @@ package com.airhacks.enhydrator.out;
  * #%L
  * enhydrator
  * %%
- * Copyright (C) 2014 Adam Bien
+ * Copyright (C) 2014 - 2015 Adam Bien
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,30 +19,28 @@ package com.airhacks.enhydrator.out;
  * limitations under the License.
  * #L%
  */
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import com.airhacks.enhydrator.in.Row;
+import java.io.IOException;
 import org.junit.Test;
 
 /**
  *
  * @author airhacks.com
  */
-public class SinkTest {
+public class ScriptableSinkTest {
 
-    @Test
-    public void defaultName() {
-        Sink sink = new CustomSink();
-        String name = sink.getName();
-        assertThat(name, is("customSink"));
+    @Test(expected = NullPointerException.class)
+    public void nullScriptIsRecognized() {
+        ScriptableSink sink = new ScriptableSink();
+        sink.init();
     }
 
     @Test
-    public void shortName() {
-        Sink sink = new Z();
-        String name = sink.getName();
-        assertThat(name, is("z"));
-
+    public void instantiate() throws IOException {
+        try (ScriptableSink sink = new ScriptableSink("./src/test/scripts/sink.js")) {
+            sink.init();
+            sink.processRow(new Row());
+        }
     }
 
 }

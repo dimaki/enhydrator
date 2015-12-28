@@ -1,7 +1,3 @@
-package com.airhacks.enhydrator.out;
-
-import com.airhacks.enhydrator.in.Row;
-
 /*
  * #%L
  * enhydrator
@@ -21,23 +17,14 @@ import com.airhacks.enhydrator.in.Row;
  * limitations under the License.
  * #L%
  */
-/**
- *
- * @author airhacks.com
- */
-@FunctionalInterface
-public interface Sink extends AutoCloseable {
+function init() {
+    print("init");
+}
 
-    default void init() {
-    }
+function processRow(entries) {
+    print(entries);
+}
 
-    void processRow(Row entries);
-
-    @Override
-    default void close() {
-    }
-
-    default String getName() {
-        return "*";
-    }
+function close() {
+    print("close");
 }
